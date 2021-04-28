@@ -10,6 +10,11 @@ from torch.optim.lr_scheduler import StepLR
 
 class Net(nn.Module):
     def __init__(self):
+
+#--------------------------
+#Models
+#--------------------------
+
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, 1)
         self.conv2 = nn.Conv2d(32, 64, 3, 1)
@@ -98,32 +103,55 @@ def main():
 
     torch.manual_seed(args.seed)
 
+#Run on GPU or CPU
+
     device = torch.device("cuda" if use_cuda else "cpu")
+
+#--------------------------
+#Data
+#--------------------------
 
     train_kwargs = {'batch_size': args.batch_size}
     test_kwargs = {'batch_size': args.test_batch_size}
     if use_cuda:
         cuda_kwargs = {'num_workers': 1,
-                       'pin_memory': True,
-                       'shuffle': True}
+                    'pin_memory': True,
+                    'shuffle': True}
         train_kwargs.update(cuda_kwargs)
         test_kwargs.update(cuda_kwargs)
+#--------------------------
+#Split Dataset
+#--------------------------
 
     transform=transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))
         ])
+
+#--------------------------
+# Init Dataloader from MNIST Dataset
+#--------------------------
+
     dataset1 = datasets.MNIST('../data', train=True, download=True,
-                       transform=transform)
+                    transform=transform)
     dataset2 = datasets.MNIST('../data', train=False,
-                       transform=transform)
+                    transform=transform)
     train_loader = torch.utils.data.DataLoader(dataset1,**train_kwargs)
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
+
+#--------------------------
+# Optimizer
+#--------------------------
 
     model = Net().to(device)
     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
 
     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+
+#--------------------------
+#Train Loop
+#--------------------------
+
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
         test(model, device, test_loader)
